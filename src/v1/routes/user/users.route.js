@@ -166,7 +166,7 @@ router.post(
 );
 
 router.get(
-  "/admin/most-used",
+  "/usage/most",
   userValidator.validateGetMostUsedUsers,
   auth("readAny", "user"),
   usersController.getMostUsedUsers
