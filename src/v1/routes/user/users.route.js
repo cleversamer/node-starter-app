@@ -24,7 +24,7 @@ router
   );
 
 router.post(
-  "/verification/email/check-code",
+  "/verification/email/code/check",
   userValidator.validateCode,
   auth("readOwn", "emailVerificationCode", true),
   usersController.checkCode("email")
@@ -49,7 +49,7 @@ router
   );
 
 router.post(
-  "/verification/phone/check-code",
+  "/verification/phone/code/check",
   userValidator.validateCode,
   auth("readOwn", "phoneVerificationCode", true),
   usersController.checkCode("phone")
@@ -111,7 +111,7 @@ router.get(
 );
 
 router.post(
-  "/account/deletion/check-code",
+  "/account/deletion/code/check",
   userValidator.validateCode,
   auth("readOwn", "user", true),
   usersController.checkCode("deletion")

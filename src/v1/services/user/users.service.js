@@ -495,7 +495,7 @@ module.exports.sendNotification = async (userIds, notification, callback) => {
     // Decide query criteria based on array of users
     const queryCriteria = userIds.length
       ? { _id: { $in: userIds } }
-      : { role: { $not: { $in: ["admin", "secretary"] } } };
+      : { role: { $not: { $in: ["admin"] } } };
 
     // Check if there are users
     const users = await User.find(queryCriteria);
