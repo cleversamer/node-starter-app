@@ -6,7 +6,7 @@ const auth = require("../../middleware/auth");
 //////////////////// COMMON ROUTES ////////////////////
 router.get(
   "/authenticate",
-  userValidator.authenticateUserValidator,
+  userValidator.validateAuthenticateUser,
   auth("readOwn", "user", true),
   usersController.authenticateUser
 );
@@ -18,14 +18,21 @@ router
     usersController.resendEmailOrPhoneVerificationCode("email")
   )
   .post(
-    userValidator.codeValidator,
+    userValidator.validateCode,
     auth("updateOwn", "emailVerificationCode", true),
     usersController.verifyEmailOrPhone("email")
   );
 
+router.post(
+  "/verification/email/check-code",
+  userValidator.validateCode,
+  auth("readOwn", "emailVerificationCode", true),
+  usersController.checkCode("email")
+);
+
 router.get(
   "/email/verify/fast",
-  userValidator.verifyEmailByLinkValidator,
+  userValidator.validateVerifyEmailByLink,
   usersController.verifyEmailByLink
 );
 
@@ -36,25 +43,32 @@ router
     usersController.resendEmailOrPhoneVerificationCode("phone")
   )
   .post(
-    userValidator.codeValidator,
+    userValidator.validateCode,
     auth("updateOwn", "phoneVerificationCode", true),
     usersController.verifyEmailOrPhone("phone")
   );
 
+router.post(
+  "/verification/phone/check-code",
+  userValidator.validateCode,
+  auth("readOwn", "phoneVerificationCode", true),
+  usersController.checkCode("phone")
+);
+
 router
   .route("/password/forgot")
   .get(
-    userValidator.getForgotPasswordCode,
+    userValidator.validateSendForgotPasswordCode,
     usersController.sendForgotPasswordCode
   )
   .post(
-    userValidator.forgotPasswordValidator,
+    userValidator.validateHanfleForgotPassword,
     usersController.handleForgotPassword
   );
 
 router.patch(
   "/password/change",
-  userValidator.changePasswordValidator,
+  userValidator.validateChangePassword,
   auth("updateOwn", "password"),
   usersController.changePassword
 );
@@ -92,8 +106,15 @@ router.delete(
 
 router.get(
   "/account/deletion/request",
-  auth("deleteOwn", "user"),
+  auth("deleteOwn", "user", true),
   usersController.requestAccountDeletion
+);
+
+router.post(
+  "/account/deletion/check-code",
+  userValidator.validateCode,
+  auth("readOwn", "user", true),
+  usersController.checkCode("deletion")
 );
 
 router.get(
@@ -139,7 +160,7 @@ router.get(
 
 router.post(
   "/admin/notifications/send",
-  userValidator.sendNotificationValidator,
+  userValidator.validateSendNotification,
   auth("createAny", "notification"),
   usersController.sendNotification
 );

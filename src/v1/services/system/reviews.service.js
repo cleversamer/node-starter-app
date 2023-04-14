@@ -103,6 +103,14 @@ module.exports.updateMyReview = async (user, reviewId, content) => {
       throw new ApiError(statusCode, message);
     }
 
+    // Check if this update's content matches last
+    // content added
+    if (review.matchCurrentContent(content)) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.review.matchCurrentContent;
+      throw new ApiError(statusCode, message);
+    }
+
     // Update review
     review.updateContent(content);
 

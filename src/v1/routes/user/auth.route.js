@@ -4,25 +4,25 @@ const { authValidator } = require("../../middleware/validation");
 
 router.post(
   "/register/email",
-  authValidator.registerWithEmailValidator,
+  authValidator.validateRegisterWithEmail,
   authController.registerWithEmail
 );
 
 router.post(
   "/register/google",
-  authValidator.registerWithGoogleValidator,
+  authValidator.validateRegisterWithGoogle,
   authController.registerWithGoogle
 );
 
 router.post(
   "/login/email",
-  authValidator.loginWithEmailValidator,
+  authValidator.validateLoginWithEmail,
   authController.loginWithEmail
 );
 
 router.post(
   "/login/google",
-  authValidator.loginWithGoogleValidator,
+  authValidator.validateLoginWithGoogle,
   authController.loginWithGoogle
 );
 

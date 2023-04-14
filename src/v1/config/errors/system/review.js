@@ -21,4 +21,8 @@ module.exports = Object.freeze({
     en: "You are not the author of this review",
     ar: "أنت لست صاحب هذه المراجعة",
   },
+  matchCurrentContent: {
+    en: "This review matches the last review you added",
+    ar: "هذه المراجعة تطابق آخر مراجعة أضفتها أنت",
+  },
 });

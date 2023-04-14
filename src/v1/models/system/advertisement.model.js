@@ -71,29 +71,37 @@ const advertisementSchema = new Schema(
     link: {
       type: String,
       trim: true,
+      default: "",
     },
     // Reason for rejection (in case of it is rejected)
     reasonFor: {
       rejection: {
         type: String,
         trim: true,
+        minLength: config.reasonForRejection.minLength,
         maxLength: config.reasonForRejection.maxLength,
-        default: "",
       },
     },
+    // The beginning date
     startDate: {
       type: Date,
       required: true,
       default: new Date(),
     },
+    // How much this ad costs
+    cost: {
+      type: Number,
+      required: true,
+    },
+    // The end date
     expiryDate: {
       type: Date,
       required: true,
     },
+    // The creation date
     createdAt: {
       type: Date,
       required: true,
-      default: new Date(),
     },
   },
   {
@@ -109,12 +117,6 @@ advertisementSchema.index({ author: -1 });
 // Creating an index on the `status` field to
 // fetch advertisements in a specific status fast
 advertisementSchema.index({ status: 1 });
-
-//////////////////// METHODS ////////////////////
-advertisementSchema.methods.updateContent = function (content) {
-  this.content = content;
-  this.isUpdated = true;
-};
 
 const Advertisement = model("Advertisement", advertisementSchema);
 

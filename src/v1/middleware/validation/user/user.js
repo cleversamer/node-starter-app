@@ -1,6 +1,7 @@
 const commonMiddleware = require("../common");
+const { server } = require("../../../config/system");
 
-module.exports.authenticateUserValidator = [
+module.exports.validateAuthenticateUser = [
   commonMiddleware.putQueryParamsInBody,
   commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
   commonMiddleware.conditionalCheck(
@@ -10,29 +11,37 @@ module.exports.authenticateUserValidator = [
   commonMiddleware.next,
 ];
 
-module.exports.verifyEmailByLinkValidator = [
+module.exports.validateVerifyEmailByLink = [
   commonMiddleware.putQueryParamsInBody,
   commonMiddleware.checkCode,
   commonMiddleware.next,
 ];
 
-module.exports.forgotPasswordValidator = [
+module.exports.validateHanfleForgotPassword = [
   commonMiddleware.checkEmailOrPhone,
   commonMiddleware.checkNewPassword,
   commonMiddleware.checkCode,
   commonMiddleware.next,
 ];
 
-module.exports.getForgotPasswordCode = [
+module.exports.validateSendForgotPasswordCode = [
   commonMiddleware.putQueryParamsInBody,
   commonMiddleware.checkEmailOrPhone,
-  commonMiddleware.checkSendTo,
+  commonMiddleware.conditionalCheck("sendTo", commonMiddleware.checkSendTo),
   commonMiddleware.next,
 ];
 
 module.exports.validateUpdateProfile = [
   commonMiddleware.conditionalCheck("name", commonMiddleware.checkName),
-  commonMiddleware.checkFile("avatar", ["png", "jpg", "jpeg"], false),
+  commonMiddleware.conditionalCheck(
+    "name",
+    commonMiddleware.checkForRealName("name")
+  ),
+  commonMiddleware.checkFile(
+    "avatar",
+    server.SUPPORTED_PHOTO_EXTENSIONS,
+    false
+  ),
   commonMiddleware.conditionalCheck("email", commonMiddleware.checkEmail),
   commonMiddleware.conditionalCheck("phoneICC", commonMiddleware.checkPhoneICC),
   commonMiddleware.conditionalCheck("phoneNSN", commonMiddleware.checkPhoneNSN),
@@ -68,7 +77,7 @@ module.exports.validateFindUserByEmailOrPhone = [
   commonMiddleware.next,
 ];
 
-module.exports.sendNotificationValidator = [
+module.exports.validateSendNotification = [
   commonMiddleware.checkUserIds,
   commonMiddleware.checkNotificationTitleEN,
   commonMiddleware.checkNotificationTitleAR,
@@ -77,7 +86,7 @@ module.exports.sendNotificationValidator = [
   commonMiddleware.next,
 ];
 
-module.exports.changePasswordValidator = [
+module.exports.validateChangePassword = [
   commonMiddleware.conditionalCheck(
     "oldPassword",
     commonMiddleware.checkOldPassword
@@ -91,7 +100,7 @@ module.exports.emailValidator = [
   commonMiddleware.next,
 ];
 
-module.exports.codeValidator = [
+module.exports.validateCode = [
   commonMiddleware.checkCode,
   commonMiddleware.next,
 ];

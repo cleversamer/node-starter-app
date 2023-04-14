@@ -1,6 +1,6 @@
 const httpStatus = require("http-status");
 const errors = require("../config/errors");
-const errorsService = require("../services/system/errors.service");
+const errorsService = require("../services/system/serverErrors.service");
 
 module.exports.ApiError = class ApiError extends Error {
   constructor(statusCode, message) {

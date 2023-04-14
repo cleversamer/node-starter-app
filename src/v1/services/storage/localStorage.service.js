@@ -1,6 +1,7 @@
 const fs = require("fs");
 const sharp = require("sharp");
 const crypto = require("crypto");
+const { server } = require("../../config/system");
 
 module.exports.storeFile = async (file, title = "") => {
   let path = "";
@@ -23,11 +24,12 @@ module.exports.storeFile = async (file, title = "") => {
     path = `/${name}`;
     fs.writeFileSync(`./uploads${path}`, readFile, "utf8");
 
-    // Check if file is a photo
-    const photoExtenstions = ["jpg", "jpeg", "png"];
-    if (photoExtenstions.includes(extension)) {
+    // Check if file is a photo and compress it
+    if (server.SUPPORTED_PHOTO_EXTENSIONS.includes(extension)) {
       await this.compressPhoto(`./uploads${path}`);
     }
+
+    // TODO: check if file is a video and compress it
 
     return { originalName: file.name, name, path };
   } catch (err) {
@@ -49,25 +51,21 @@ module.exports.deleteFile = async (filePath) => {
 
 module.exports.compressPhoto = async (path) => {
   try {
-    // read the input image file
-    const inputImage = fs.readFileSync(path);
-
     // Get metadata of the photo
-    const metadata = await sharp(inputImage).metadata();
-
-    // compress photo's width to 80% of original width
-    const newWidth = Math.ceil(metadata.width * 0.8);
+    // const metadata = await sharp(inputImage).metadata();
 
     // resize and compress the image using sharp
-    sharp(inputImage)
-      .resize({ width: newWidth }) // set the maximum width to 800 pixels
-      .jpeg({ quality: 80 }) // compress the image to 80% quality JPEG
+    sharp(path)
+      .resize(200, 200) // set the maximum width to 200 pixels
+      .jpeg({ quality: 40 }) // compress the image to 40% quality JPEG
       .toBuffer()
       .then((outputBuffer) => {
         // write the compressed image to a file
         fs.writeFileSync(path, outputBuffer);
       })
-      .catch((err) => {});
+      .catch(async (err) => {
+        await this.deleteFile(path);
+      });
   } catch (err) {
     throw err;
   }

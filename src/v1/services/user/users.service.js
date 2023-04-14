@@ -3,12 +3,16 @@ const jwt = require("jsonwebtoken");
 const httpStatus = require("http-status");
 const emailService = require("../cloud/email.service");
 const notificationsService = require("../cloud/notifications.service");
+const serverErrorsService = require("../system/serverErrors.service");
 const localStorage = require("../storage/localStorage.service");
 const cloudStorage = require("../cloud/cloudStorage.service");
 const { ApiError } = require("../../middleware/apiError");
 const errors = require("../../config/errors");
 const userAgentParser = require("ua-parser-js");
-const { user: userNotifications } = require("../../config/notifications");
+const {
+  user: userNotifications,
+  admin: adminNotifications,
+} = require("../../config/notifications");
 const requestIp = require("request-ip");
 
 module.exports.notifyUsersWithUnseenNotifications = async () => {
@@ -19,7 +23,7 @@ module.exports.notifyUsersWithUnseenNotifications = async () => {
     });
 
     // Check if there are users with unseen notifications
-    if (!users) {
+    if (!users || !users.length) {
       return;
     }
 
@@ -27,23 +31,44 @@ module.exports.notifyUsersWithUnseenNotifications = async () => {
 
     // Pick only users that they haven't received this notification
     const userIds = users
-      .filter((user) => {
-        // Find user that has received this notification
-        // and saw it.
-        const index = user.notifications.findIndex(
-          (n) =>
-            n.title.en === notification.title.en &&
-            n.title.ar === notification.title.ar &&
-            n.body.en === notification.body.en &&
-            n.body.ar === notification.body.ar &&
-            !n.seen
-        );
+      .filter((user) => user.hasReceivedNotification(notification))
+      .map((user) => user._id);
 
-        // This means that the current user hasn't received
-        // this notification yet, or they have received it
-        // and read it.
-        return index === -1;
-      })
+    // Check if there are users that they haven't received
+    // this notification yet.
+    if (!userIds || !userIds.length) {
+      return;
+    }
+
+    await this.sendNotification(userIds, notification);
+  } catch (err) {
+    return;
+  }
+};
+
+module.exports.notifyAdminsWithServerErrors = async () => {
+  try {
+    // Find users with unseen notifications
+    const admins = await User.find({ role: "admin" });
+
+    // Check if there are users with unseen notifications
+    if (!admins || !admins.length) {
+      return;
+    }
+
+    // Check if there are server errors occurred
+    const serverErrorsCount = await serverErrorsService.getAllErrorsCount();
+    if (!serverErrorsCount) {
+      return;
+    }
+
+    // Construct the notification object
+    const notification =
+      adminNotifications.serverErrorsOccurred(serverErrorsCount);
+
+    // Pick only users that they haven't received this notification
+    const userIds = admins
+      .filter((user) => user.hasReceivedNotification(notification))
       .map((user) => user._id);
 
     // Check if there are users that they haven't received
@@ -94,7 +119,7 @@ module.exports.findUserByEmailOrPhone = async (
         { email: { $eq: emailOrPhone } },
         { "phone.full": { $eq: emailOrPhone } },
       ],
-      isDeleted: false,
+      deleted: false,
     });
 
     // Throwing error if no user found and `throwError = true`
@@ -107,7 +132,7 @@ module.exports.findUserByEmailOrPhone = async (
     // Throwing error if a user was found but the specified `role` does not match
     // This happens in case of role is added as an argument
     // If role is falsy that means this search does not care of role
-    if (withError && user && role && user.role !== role) {
+    if (withError && user && role && user.getRole() !== role) {
       const statusCode = httpStatus.NOT_FOUND;
       const message = errors.user.foundWithInvalidRole;
       throw new ApiError(statusCode, message);
@@ -121,7 +146,7 @@ module.exports.findUserByEmailOrPhone = async (
 
 module.exports.findUserById = async (userId, withError = false) => {
   try {
-    const user = await User.findOne({ _id: userId, isDeleted: false });
+    const user = await User.findOne({ _id: userId, deleted: false });
 
     if (withError && !user) {
       const statusCode = httpStatus.NOT_FOUND;
@@ -140,7 +165,7 @@ module.exports.findAdmins = async () => {
     return await User.find({
       role: "admin",
       "verified.email": true,
-      isDeleted: false,
+      deleted: false,
     });
   } catch (err) {
     throw err;
@@ -199,6 +224,30 @@ module.exports.verifyEmailOrPhone = async (key, user, code) => {
     await user.save();
 
     return user;
+  } catch (err) {
+    throw err;
+  }
+};
+
+module.exports.checkCode = (key, user, code) => {
+  try {
+    // Check if code is valid
+    const isValid = user.isValidCode(key);
+
+    // Check if code is correct
+    const isCorrect = user.isMatchingCode(key, code);
+
+    // Calculate remaining time
+    const { days, hours, minutes, seconds } = user.getCodeRemainingTime(key);
+
+    return {
+      isValid,
+      isCorrect,
+      remainingDays: days,
+      remainingHours: hours,
+      remainingMinutes: minutes,
+      remainingSeconds: seconds,
+    };
   } catch (err) {
     throw err;
   }
@@ -400,7 +449,7 @@ module.exports.updateProfile = async (
 module.exports.deleteUserAvatar = async (user) => {
   try {
     // Check if doesn's have an avatar URL
-    if (!user.avatarURL) {
+    if (!user.getAvatarURL()) {
       const statusCode = httpStatus.BAD_REQUEST;
       const message = errors.user.noAvatar;
       throw new ApiError(statusCode, message);
@@ -409,7 +458,7 @@ module.exports.deleteUserAvatar = async (user) => {
     // Check if user's avatar URL does not point
     // to this server or any of app's storage buckets
     if (!user.hasGoogleAvatar()) {
-      await cloudStorage.deleteFile(user.avatarURL);
+      await cloudStorage.deleteFile(user.getAvatarURL());
     }
 
     // Set user's avatar to an empty string
@@ -457,12 +506,13 @@ module.exports.sendNotification = async (userIds, notification, callback) => {
     // Get users' tokens and add notification to them
     const tokens = users.map((user) => {
       try {
-        // Add the notification to user's notifications array
-        // Save the user to the database
+        // Add notification to user
         user.addNotification(notification);
+
+        // Save user to the BB
         user.save();
 
-        return { lang: user.favLang, value: user.deviceToken };
+        return { lang: user.getLanguage(), value: user.getDeviceToken() };
       } catch (err) {
         return "";
       }
@@ -629,7 +679,7 @@ module.exports.confirmAccountDeletion = async (token, code) => {
 
     // Check if user exists
     const user = await User.findById(payload.sub);
-    if (!user || user.isDeleted) {
+    if (!user || user.isDeleted()) {
       const statusCode = httpStatus.NOT_FOUND;
       const message = errors.user.notFound;
       throw new ApiError(statusCode, message);
@@ -674,16 +724,19 @@ module.exports.changeUserRole = async (emailOrPhone, role) => {
       throw new ApiError(statusCode, message);
     }
 
-    if (user.role === "admin") {
+    if (user.isAdmin()) {
       const statusCode = httpStatus.NOT_FOUND;
       const message = errors.user.updateAdminRole;
       throw new ApiError(statusCode, message);
     }
 
     // Update user's role
-    user.role = role;
+    user.updateRole(role);
 
-    return await user.save();
+    // Save user to the DB
+    await user.save();
+
+    return user;
   } catch (err) {
     throw err;
   }
@@ -700,17 +753,22 @@ module.exports.verifyUser = async (emailOrPhone) => {
     }
 
     // Check if user's email and phone are already verified
-    if (user.verified.email && user.verified.phone) {
+    if (user.isEmailVerified() && user.isPhoneEqual()) {
       const statusCode = httpStatus.BAD_REQUEST;
       const message = errors.user.alreadyVerified;
       throw new ApiError(statusCode, message);
     }
 
-    // Verify user's email and phone
+    // Verify user's email
     user.verifyEmail();
+
+    // Verify user's phone
     user.verifyPhone();
 
-    return await user.save();
+    // Save user to the DB
+    await user.save();
+
+    return user;
   } catch (err) {
     throw err;
   }
@@ -790,24 +848,34 @@ const updateUserProfile = async (user, body) => {
     const changes = [];
 
     // Updating name when there's new name
-    if (name && user.name !== name) {
-      user.name = name;
+    if (name && !user.compareName(name)) {
+      // Update user's name
+      user.updateName(name);
+
+      // Add name to changes list
       changes.push("name");
     }
 
     // Updating avatar when there's new avatar
     if (avatar) {
-      const file = await localStorage.storeFile(avatar);
-      const fileURL = await cloudStorage.uploadFile(file);
-      await cloudStorage.deleteFile(user.avatarURL);
-      user.avatarURL = fileURL;
+      // Store file locally in the `uploads` folder
+      const localPhoto = await localStorage.storeFile(avatar);
+
+      // Upload file from `uploads` folder to cloud bucket
+      const cloudPhotoURL = await cloudStorage.uploadFile(localPhoto);
+
+      // Delete previous avatar picture from cloud bucket
+      await cloudStorage.deleteFile(user.getAvatarURL());
+
+      // Update user's avatar URL
+      user.updateAvatarURL(cloudPhotoURL);
+
+      // Add user's avatar to changes
       changes.push("avatarURL");
     }
 
-    // Updating email, setting email as not verified,
-    // update email verification code, and sending
-    // email verification code to user's email
-    if (email && user.email !== email) {
+    // Update email if it's new
+    if (email && user.getEmail() !== email) {
       // Checking if email used
       const emailUsed = await this.findUserByEmailOrPhone(email);
       if (emailUsed) {
@@ -816,31 +884,36 @@ const updateUserProfile = async (user, body) => {
         throw new ApiError(statusCode, message);
       }
 
-      // Updating email, setting email as not verified,
-      // update email verification code, and sending
-      // email verification code to user's email
-      user.email = email;
-      user.verified.email = false;
-      changes.push("email");
+      // Update user's email
+      user.updateEmail(email);
+
+      // Mark user's email as not verified
+      user.unverifyEmail();
+
+      // Update user's email verification code
       user.updateCode("email");
+
+      // Add user's email to changes
+      changes.push("email");
+
+      // Send email to user
       await emailService.sendChangeEmail(
-        user.favLang,
-        email,
-        user.verification.email.code,
-        user.name
+        user.getLanguage(),
+        user.getEmail(),
+        user.getCode("email"),
+        user.getName()
       );
     }
 
-    // Updating phone, setting phone as not verified,
-    // update phone verification code, and sending
-    // phone verification code to user's phone
-    const isPhoneEqual =
-      user.phone.icc === phoneICC && user.phone.nsn === phoneNSN;
+    // Update phone if it's new
+    const isPhoneEqual = user.getPhone() === `${phoneICC}${phoneNSN}`;
     if ((phoneICC || phoneNSN) && !isPhoneEqual) {
-      // Checking if phone used
-      const fullPhone = `${phoneICC || user.phone.icc}${
-        phoneNSN || user.phone.nsn
-      }`;
+      // Decide new phone number
+      const newICC = `${phoneICC || user.getPhoneICC()}`;
+      const newNSN = `${phoneNSN || user.getPhoneNSN()}`;
+      const fullPhone = `${newICC}${newNSN}`;
+
+      // Checking if new phone number is used
       const phoneUsed = await this.findUserByEmailOrPhone(fullPhone);
       if (phoneUsed) {
         const statusCode = httpStatus.FORBIDDEN;
@@ -848,28 +921,30 @@ const updateUserProfile = async (user, body) => {
         throw new ApiError(statusCode, message);
       }
 
-      // Updating email, setting email as not verified,
-      // update email verification code, and sending
-      // email verification code to user's email
-      user.phone = {
-        full: fullPhone,
-        icc: phoneICC || user.phone.icc,
-        nsn: phoneNSN || user.phone.nsn,
-      };
-      user.verified.phone = false;
-      changes.push("phone");
+      // Update user's phone
+      user.updatePhone(newICC, newNSN);
+
+      // Mark user's phone as not verified
+      user.unverifyPhone();
+
+      // Update user's phone verification code
       user.updateCode("phone");
+
+      // Add user's phone to changes
+      changes.push("phone");
 
       // TODO: send phone verification code to user's phone
     }
 
+    // Check if there were no updates
     if (!changes.length) {
       const statusCode = httpStatus.BAD_REQUEST;
       const message = errors.user.notUpdated;
       throw new ApiError(statusCode, message);
     }
 
-    user = await user.save();
+    // Save user to the DB
+    await user.save();
 
     return { newUser: user, changes };
   } catch (err) {

@@ -8,4 +8,5 @@ module.exports = Object.freeze({
   notification: allRights,
   loginActivity: allRights,
   review: allRights,
+  error: allRights,
 });

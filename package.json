@@ -30,6 +30,7 @@
     "helmet": "^6.0.0",
     "http-status": "^1.5.2",
     "jsonwebtoken": "^9.0.0",
+    "langdetect": "^0.2.1",
     "lodash": "^4.17.21",
     "mongoose": "^7.0.3",
     "nodemailer": "^6.8.0",

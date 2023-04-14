@@ -53,16 +53,28 @@ module.exports = Object.freeze({
     en: "Error sending email",
     ar: "حصل خطأ عند إرسال البريد الإلكتروني",
   },
-  invalidPageNumber: {
+  pageNumberRequired: {
     en: "Page number is required",
     ar: "رقم الصفحة مطلوب",
   },
-  invalidLimitNumber: {
+  invalidPageNumber: {
+    en: "Page number must be a positive number",
+    ar: "يجب أن يكون رقم الصفحة رقمًا موجبًا",
+  },
+  limitNumberRequired: {
     en: "Limit count is required",
     ar: "عدد التحديد مطلوب",
+  },
+  invalidLimitNumber: {
+    en: "Limit number must be a positive number",
+    ar: "يجب أن يكون عدد التحديد عددًا موجبًا",
   },
   errorExportingExcel: {
     en: "Error exporting excel file",
     ar: "حدث خطأ عند تصدير ملف الاكسل",
+  },
+  invalidLanguage: {
+    en: "Language doesn't match the required language",
+    ar: "اللغة لا تتطابق مع اللغة المطلوبة",
   },
 });

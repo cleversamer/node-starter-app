@@ -1,5 +1,5 @@
 module.exports = {
-  name: { minLength: 8, maxLength: 64 },
+  name: { minLength: 5, maxLength: 64 },
   email: { minLength: 5, maxLength: 256 },
   phone: {
     nsn: { minLength: 4, maxLength: 13 },
@@ -15,7 +15,9 @@ module.exports = {
   receiverTypes: ["email", "phone"],
   maxNotificationsCount: 30,
   // First value is the default value
-  favLanguages: ["en", "ar"],
+  languages: ["en", "ar"],
+  // First value is the default value
+  displayModes: ["light", "dark", "dim"],
   notificationTitle: { min: 3, max: 128 },
   notificationBody: { min: 3, max: 265 },
 };

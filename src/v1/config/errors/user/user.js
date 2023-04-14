@@ -92,4 +92,8 @@ module.exports = Object.freeze({
     en: "You haven't added an avatar picture",
     ar: "لم تقم بإضافة صورة شخصيّة",
   },
+  unrealName: {
+    en: "We require everyone to use the name they use in everyday life",
+    ar: "نطلب من الجميع استخدام الإسم الذي يستخدمونه في الحياة اليوميّة",
+  },
 });

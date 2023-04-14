@@ -1,8 +1,9 @@
 const commonMiddleware = require("../common");
 
-module.exports.registerWithEmailValidator = [
+module.exports.validateRegisterWithEmail = [
   commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
   commonMiddleware.checkName,
+  commonMiddleware.checkForRealName("name"),
   commonMiddleware.checkEmail,
   commonMiddleware.checkPhoneICC,
   commonMiddleware.checkPhoneNSN,
@@ -14,7 +15,7 @@ module.exports.registerWithEmailValidator = [
   commonMiddleware.next,
 ];
 
-module.exports.registerWithGoogleValidator = [
+module.exports.validateRegisterWithGoogle = [
   commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
   commonMiddleware.checkPhoneICC,
   commonMiddleware.checkPhoneNSN,
@@ -25,7 +26,7 @@ module.exports.registerWithGoogleValidator = [
   commonMiddleware.next,
 ];
 
-module.exports.loginWithEmailValidator = [
+module.exports.validateLoginWithEmail = [
   commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
   commonMiddleware.checkEmailOrPhone,
   commonMiddleware.checkPassword,
@@ -36,7 +37,7 @@ module.exports.loginWithEmailValidator = [
   commonMiddleware.next,
 ];
 
-module.exports.loginWithGoogleValidator = [
+module.exports.validateLoginWithGoogle = [
   commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
   commonMiddleware.conditionalCheck(
     "deviceToken",

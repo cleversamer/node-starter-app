@@ -146,6 +146,67 @@ module.exports.exportReviewsToExcelFile = async (reviews = []) => {
   }
 };
 
+module.exports.exportErrorsToExcelFile = async (errors = []) => {
+  let filePath = "";
+
+  try {
+    // Create a new Excel Workbook
+    const workbook = new Excel.Workbook();
+
+    // Add new sheet to the Workbook
+    const worksheet = workbook.addWorksheet(`${APP_NAME_EN} Errors`);
+
+    // Specify excel sheet's columns
+    worksheet.addRow([
+      "Request URL",
+      "Name",
+      "Message",
+      "Stack Trace",
+      "Occurs",
+      "Date",
+    ]);
+
+    // Add row for each user in the Database
+    errors.forEach(function (error) {
+      const date = `${error.date.toDateString()} ${error.date.toLocaleTimeString()}`;
+
+      worksheet.addRow([
+        error.requestURL,
+        error.name,
+        error.message,
+        error.stackTrace,
+        error.occurs,
+        date,
+      ]);
+    }, "i");
+
+    // Decide excel's file
+    const fileName =
+      filterName(`${APP_NAME_EN.toLowerCase()}_errors_${getCurrentDate()}`) +
+      ".xlsx";
+    filePath = `/${fileName}`;
+
+    // Generate and save excel file
+    await workbook.xlsx.writeFile(`./uploads/${fileName}`);
+
+    // Upload excel file to storage bucket
+    const cloudFile = await cloudStorage.uploadFile({
+      name: fileName,
+      path: filePath,
+    });
+
+    // Return file's path
+    return cloudFile;
+  } catch (err) {
+    throw err;
+  } finally {
+    // Delete local excel file
+    if (filePath) {
+      await localStorage.deleteFile(filePath);
+    }
+  }
+};
+
 module.exports.exportLoginActivitiesToExcelFile = async (
   user,
   loginActivities = []

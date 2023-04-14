@@ -16,11 +16,11 @@ const jwtVerify = async (payload, done) => {
 
     const unauthorized =
       !user ||
-      user.isDeleted ||
+      user.isDeleted() ||
       tokenPassword !== user.password ||
       tokenPasswordSalt !== server.PASSWORD_SALT ||
-      payload.email !== user.email ||
-      payload.phone !== user.phone.full;
+      payload.email !== user.getEmail() ||
+      payload.phone !== user.getPhone();
 
     return unauthorized ? done(null, false) : done(null, user);
   } catch (err) {

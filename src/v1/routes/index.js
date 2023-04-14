@@ -3,6 +3,8 @@ const authRoute = require("./user/auth.route");
 const usersRoute = require("./user/users.route");
 const loginActivitiesRoute = require("./user/loginActivities.route");
 const reviewsRoute = require("./system/reviews.route");
+const errorsRoute = require("./system/errors.route");
+const advertisementsRoute = require("./system/advertisements.route");
 
 const routes = [
   {
@@ -20,6 +22,14 @@ const routes = [
   {
     path: "/reviews",
     route: reviewsRoute,
+  },
+  {
+    path: "/errors",
+    route: errorsRoute,
+  },
+  {
+    path: "/advertisements",
+    route: advertisementsRoute,
   },
 ];
 

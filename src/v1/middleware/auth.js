@@ -19,7 +19,7 @@ const verify = (req, res, resolve, reject, rights) => async (err, user) => {
   const requireNoVerified = rights[2];
 
   // Check if user has verified their phone nuber
-  if (!requireNoVerified && !user.verified.phone) {
+  if (!requireNoVerified && !user.isPhoneVerified()) {
     const statusCode = httpStatus.FORBIDDEN;
     const message = errors.auth.phoneNotVerified;
     return reject(new ApiError(statusCode, message));
@@ -29,7 +29,7 @@ const verify = (req, res, resolve, reject, rights) => async (err, user) => {
   if (rights.length) {
     const action = rights[0];
     const resource = rights[1];
-    const permission = roles.can(req.user.role)[action](resource);
+    const permission = roles.can(user.getRole())[action](resource);
 
     if (!permission.granted) {
       const statusCode = httpStatus.FORBIDDEN;

@@ -15,7 +15,7 @@ module.exports.registerWithEmail = async (req, res, next) => {
       req.body;
 
     // Create the user
-    const user = await authService.registerWithEmail(
+    const { user, isAlreadyRegistered } = await authService.registerWithEmail(
       email,
       password,
       name,
@@ -25,29 +25,59 @@ module.exports.registerWithEmail = async (req, res, next) => {
       lang
     );
 
-    // Send welcoming email
-    await emailService.sendWelcomingEmail(user.favLang, user.email, user.name);
+    if (isAlreadyRegistered) {
+      // Parse client data
+      const { osName } = usersService.parseUserAgent(req);
 
-    // Construct verification email
-    const host = req.get("host");
-    const protocol =
-      host.split(":")[0] === "localhost" ? "http://" : "https://";
-    const endpoint = "/api/users/email/verify/fast";
-    const { code } = user.verification.email;
-    const token = user.genAuthToken();
-    const verificationLink = `${protocol}${host}${endpoint}?code=${code}&token=${token}`;
+      // Send login activity email to user
+      await emailService.sendLoginActivityEmail(
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName(),
+        osName
+      );
 
-    // Send register email with email verification code
-    // if user is joining for the first time
-    await emailService.sendVerificationCodeEmail(
-      user.favLang,
-      user.email,
-      user.verification.email.code,
-      user.name,
-      verificationLink
-    );
+      // Send notification to user
+      await usersService.sendNotification(
+        [user._id],
+        userNotifications.newLoginActivity(user.getLastLogin())
+      );
 
-    // TODO: send phone activation code to user's phone.
+      // Add login activity to user
+      await loginActivitiesService.createLoginActivity(req, user._id);
+    } else {
+      // Send welcoming email
+      await emailService.sendWelcomingEmail(
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName()
+      );
+    }
+
+    if (!user.isEmailVerified()) {
+      // Construct verification email
+      const host = req.get("host");
+      const protocol =
+        host.split(":")[0] === "localhost" ? "http://" : "https://";
+      const endpoint = "/api/users/email/verify/fast";
+      const code = user.getCode("email");
+      const token = user.genAuthToken();
+      const verificationLink = `${protocol}${host}${endpoint}?code=${code}&token=${token}`;
+
+      // Send register email with email verification code
+      // if user is joining for the first time
+      await emailService.sendVerificationCodeEmail(
+        user.getLanguage(),
+        user.getEmail(),
+        user.getCode("email"),
+        user.getName(),
+        verificationLink
+      );
+    }
+
+    if (!user.isPhoneVerified()) {
+      // TODO: send phone activation code to user's phone.
+    }
 
     // Create response object
     const response = {
@@ -83,26 +113,26 @@ module.exports.registerWithGoogle = async (req, res, next) => {
 
       // Send login activity email to user
       await emailService.sendLoginActivityEmail(
-        user.favLang,
-        user.email,
-        user.name,
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName(),
         osName
       );
 
       // Send notification to user
       await usersService.sendNotification(
         [user._id],
-        userNotifications.newLoginActivity(user.lastLogin)
+        userNotifications.newLoginActivity(user.getLastLogin())
       );
 
       // Add login activity to user
-      await loginActivitiesService.createLoginActivity(req, user);
+      await loginActivitiesService.createLoginActivity(req, user._id);
     } else {
       // Send welcoming email
       await emailService.sendWelcomingEmail(
-        user.favLang,
-        user.email,
-        user.name
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName()
       );
     }
 
@@ -139,23 +169,23 @@ module.exports.loginWithEmail = async (req, res, next) => {
     if (isDeleted) {
       // Send welcome back email to user
       await emailService.sendWelcomeBackEmail(
-        user.favLang,
-        user.email,
-        user.name
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName()
       );
     } else {
       // Send login activity email to user
       await emailService.sendLoginActivityEmail(
-        user.favLang,
-        user.email,
-        user.name,
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName(),
         osName
       );
 
       // Send notification to user
       await usersService.sendNotification(
         [user._id],
-        userNotifications.newLoginActivity(user.lastLogin)
+        userNotifications.newLoginActivity(user.getLastLogin())
       );
     }
 
@@ -189,23 +219,23 @@ module.exports.loginWithGoogle = async (req, res, next) => {
     if (isDeleted) {
       // Send welcome back email to user
       await emailService.sendWelcomeBackEmail(
-        user.favLang,
-        user.email,
-        user.name
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName()
       );
     } else {
       // Send login activity email to user
       await emailService.sendLoginActivityEmail(
-        user.favLang,
-        user.email,
-        user.name,
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName(),
         osName
       );
 
       // Send notification to user
       await usersService.sendNotification(
         [user._id],
-        userNotifications.newLoginActivity(user.lastLogin)
+        userNotifications.newLoginActivity(user.getLastLogin())
       );
     }
 

@@ -1,23 +1,27 @@
 const httpStatus = require("http-status");
 const _ = require("lodash");
 const { User, clientSchema } = require("../../models/user/user.model");
-const { usersService, emailService, excelService } = require("../../services");
+const {
+  usersService,
+  emailService,
+  excelService,
+  notificationsService,
+} = require("../../services");
 const success = require("../../config/success");
-const { Notification } = require("../../config/notifications");
 
 module.exports.authenticateUser = async (req, res, next) => {
   try {
     const user = req.user;
     const { lang, deviceToken } = req.query;
 
-    // Update user's last login date
-    user.updateLastLogin();
-
     // [OPTIONAL]: Update user's favorite language
     user.updateLanguage(lang);
 
     // [OPTIONAL]: Update user's device token
     user.updateDeviceToken(deviceToken);
+
+    // Update user's last login date
+    user.updateLastLogin();
 
     // Save user to the DB
     await user.save();
@@ -52,15 +56,15 @@ module.exports.resendEmailOrPhoneVerificationCode =
         const protocol =
           host.split(":")[0] === "localhost" ? "http://" : "https://";
         const endpoint = "/api/users/email/verify/fast";
-        const { code } = newUser.verification.email;
+        const code = newUser.getCode("email");
         const token = newUser.genAuthToken();
         const verificationLink = `${protocol}${host}${endpoint}?code=${code}&token=${token}`;
 
         await emailService.sendVerificationCodeEmail(
-          newUser.favLang,
-          newUser.email,
+          newUser.getLanguage(),
+          newUser.getEmail(),
           code,
-          newUser.name,
+          newUser.getName(),
           verificationLink
         );
       } else {
@@ -95,9 +99,9 @@ module.exports.verifyEmailOrPhone = (key) => async (req, res, next) => {
     // and send a message to user's email or phone
     if (key === "email") {
       await emailService.sendEmailVerifiedEmail(
-        user.favLang,
-        user.email,
-        user.name
+        user.getLanguage(),
+        user.getEmail(),
+        user.getName()
       );
     } else {
       // TODO: send an SMS message to user's phone
@@ -105,6 +109,40 @@ module.exports.verifyEmailOrPhone = (key) => async (req, res, next) => {
 
     // Create the response object
     const response = _.pick(verifiedUser, clientSchema);
+
+    // Send response back to the client
+    res.status(httpStatus.OK).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.checkCode = (key) => async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { code } = req.body;
+
+    // Asking service to check for user's
+    // verification code status
+    const {
+      isCorrect,
+      isValid,
+      remainingDays,
+      remainingHours,
+      remainingMinutes,
+      remainingSeconds,
+    } = await usersService.checkCode(key, user, code);
+
+    // Create the response object
+    const response = {
+      key,
+      isValid,
+      isCorrect,
+      remainingDays,
+      remainingHours,
+      remainingMinutes,
+      remainingSeconds,
+    };
 
     // Send response back to the client
     res.status(httpStatus.OK).json(response);
@@ -121,13 +159,13 @@ module.exports.verifyEmailByLink = async (req, res, next) => {
 
     // Send email to user
     await emailService.sendEmailVerifiedEmail(
-      user.favLang,
-      user.email,
-      user.name
+      user.getLanguage(),
+      user.getEmail(),
+      user.getName()
     );
 
     // Create the response object
-    const response = success.auth.emailVerified[user.favLang];
+    const response = success.auth.emailVerified[user.getLanguage()];
 
     // Send response back to the client
     res.status(httpStatus.OK).send(response);
@@ -157,10 +195,10 @@ module.exports.sendForgotPasswordCode = async (req, res, next) => {
       // TODO: send forgot password code to user's phone.
     } else {
       await emailService.sendForgotPasswordEmail(
-        user.favLang,
-        user.email,
-        user.verification.password.code,
-        user.name
+        user.getLanguage(),
+        user.getEmail(),
+        user.getCode("password"),
+        user.getName()
       );
     }
 
@@ -194,9 +232,9 @@ module.exports.handleForgotPassword = async (req, res, next) => {
 
     // Send email to user
     await emailService.sendPasswordChangedEmail(
-      user.favLang,
-      user.email,
-      user.name
+      user.getLanguage(),
+      user.getEmail(),
+      user.getName()
     );
 
     // Create the response object
@@ -219,9 +257,9 @@ module.exports.changePassword = async (req, res, next) => {
 
     // Send email to user
     await emailService.sendPasswordChangedEmail(
-      user.favLang,
-      user.email,
-      user.name
+      user.getLanguage(),
+      user.getEmail(),
+      user.getName()
     );
 
     // Create the response object
@@ -348,15 +386,15 @@ module.exports.requestAccountDeletion = async (req, res, next) => {
     const protocol =
       host.split(":")[0] === "localhost" ? "http://" : "https://";
     const endpoint = "/api/users/account/deletion/confirm";
-    const { code } = newUser.verification.deletion;
+    const code = newUser.getCode("deletion");
     const token = newUser.genAuthToken();
     const deletionLink = `${protocol}${host}${endpoint}?code=${code}&token=${token}`;
 
     // Send email to user
     await emailService.sendAccountDeletionCodeEmail(
-      newUser.favLang,
-      newUser.email,
-      newUser.name,
+      newUser.getLanguage(),
+      newUser.getEmail(),
+      newUser.getName(),
       deletionLink
     );
 
@@ -379,13 +417,13 @@ module.exports.confirmAccountDeletion = async (req, res, next) => {
 
     // Send an email to the user
     await emailService.sendAccountDeletedEmail(
-      user.favLang,
-      user.email,
-      user.name
+      user.getLanguage(),
+      user.getEmail(),
+      user.getName()
     );
 
     // Create the response object
-    const response = success.auth.accountDeleted[user.favLang];
+    const response = success.auth.accountDeleted[user.getLanguage()];
 
     // Send response back to the client
     res.status(httpStatus.OK).send(response);
@@ -503,7 +541,13 @@ module.exports.sendNotification = async (req, res, next) => {
   try {
     const { userIds, titleEN, titleAR, bodyEN, bodyAR } = req.body;
 
-    const notification = new Notification(titleEN, titleAR, bodyEN, bodyAR);
+    const notification = notificationsService.createNotification(
+      titleEN,
+      titleAR,
+      bodyEN,
+      bodyAR
+    );
+
     await usersService.sendNotification(userIds, notification);
 
     res.status(httpStatus.OK).json(notification);

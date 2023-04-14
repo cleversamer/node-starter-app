@@ -24,6 +24,25 @@ module.exports.MAX_REQ_BODY_SIZE = 8; // In KiloBytes
 
 module.exports.SUPPORTED_LANGUAGES = ["en", "ar"];
 
+module.exports.SUPPORTED_PHOTO_EXTENSIONS = [
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "gif",
+];
+
+module.exports.SUPPORTED_VIDEO_EXTENSIONS = [
+  "mp4",
+  "mpeg",
+  "mpeg4",
+  "avi",
+  "mov",
+  "wmv",
+  "flv",
+  "mkv",
+];
+
 module.exports.MAX_REQUESTS = {
   PER_MILLISECONDS: 1 * 60 * 1000, //  => 1 minute
   NUMBER: 60 * 256, // allowed number of requests

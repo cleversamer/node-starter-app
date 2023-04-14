@@ -1,4 +1,5 @@
 const { check, validationResult } = require("express-validator");
+const langdetect = require("langdetect");
 const httpStatus = require("http-status");
 const { ApiError } = require("../apiError");
 const errors = require("../../config/errors");
@@ -173,13 +174,71 @@ module.exports.checkFile =
     next();
   };
 
-module.exports.checkPage = check("page")
-  .isNumeric()
-  .withMessage(errors.system.invalidPageNumber);
+module.exports.checkPage = (req, res, next) => {
+  try {
+    const { page } = req.body;
 
-module.exports.checkLimit = check("limit")
-  .isNumeric()
-  .withMessage(errors.system.invalidLimitNumber);
+    // Check if page exist
+    if (!page) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.system.pageNumberRequired;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Check if page is a numeric value
+    const number = parseInt(page);
+    const isNumber = Number.isInteger(number);
+    if (!isNumber) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.system.pageNumberRequired;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Check if page number is positive
+    if (number < 1) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.system.invalidPageNumber;
+      throw new ApiError(statusCode, message);
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.checkLimit = (req, res, next) => {
+  try {
+    const { limit } = req.body;
+
+    // Check if limit exist
+    if (!limit) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.system.limitNumberRequired;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Check if limit is a numeric value
+    const number = parseInt(limit);
+    const isNumber = Number.isInteger(number);
+    if (!isNumber) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.system.limitNumberRequired;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Check if limit number is positive
+    if (number < 1) {
+      const statusCode = httpStatus.BAD_REQUEST;
+      const message = errors.system.invalidLimitNumber;
+      throw new ApiError(statusCode, message);
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
 
 module.exports.checkUserId = check("userId")
   .isMongoId()
@@ -208,33 +267,49 @@ module.exports.checkUserIds = (req, res, next) => {
   }
 };
 
-module.exports.checkNotificationTitleEN = check("titleEN")
-  .isLength({
-    min: userValidation.notificationTitle.min,
-    max: userValidation.notificationTitle.max,
-  })
-  .withMessage(errors.user.invalidNotificationTitle);
+module.exports.checkNotificationTitleEN = [
+  check("titleEN")
+    .isLength({
+      min: userValidation.notificationTitle.min,
+      max: userValidation.notificationTitle.max,
+    })
+    .withMessage(errors.user.invalidNotificationTitle),
 
-module.exports.checkNotificationTitleAR = check("titleAR")
-  .isLength({
-    min: userValidation.notificationTitle.min,
-    max: userValidation.notificationTitle.max,
-  })
-  .withMessage(errors.user.invalidNotificationTitle);
+  checkTextLanguage("titleEN", "en", errors.notification.invalidTitleEN),
+];
 
-module.exports.checkNotificationBodyEN = check("bodyEN")
-  .isLength({
-    min: userValidation.notificationBody.min,
-    max: userValidation.notificationBody.max,
-  })
-  .withMessage(errors.user.invalidNotificationBody);
+module.exports.checkNotificationTitleAR = [
+  check("titleAR")
+    .isLength({
+      min: userValidation.notificationTitle.min,
+      max: userValidation.notificationTitle.max,
+    })
+    .withMessage(errors.user.invalidNotificationTitle),
 
-module.exports.checkNotificationBodyAR = check("bodyAR")
-  .isLength({
-    min: userValidation.notificationBody.min,
-    max: userValidation.notificationBody.max,
-  })
-  .withMessage(errors.user.invalidNotificationBody);
+  checkTextLanguage("titleAR", "ar", errors.notification.invalidTitleAR),
+];
+
+module.exports.checkNotificationBodyEN = [
+  check("bodyEN")
+    .isLength({
+      min: userValidation.notificationBody.min,
+      max: userValidation.notificationBody.max,
+    })
+    .withMessage(errors.user.invalidNotificationBody),
+
+  checkTextLanguage("bodyEN", "en", errors.notification.invalidBodyEN),
+];
+
+module.exports.checkNotificationBodyAR = [
+  check("bodyAR")
+    .isLength({
+      min: userValidation.notificationBody.min,
+      max: userValidation.notificationBody.max,
+    })
+    .withMessage(errors.user.invalidNotificationBody),
+
+  checkTextLanguage("bodyAR", "ar", errors.notification.invalidBodyAR),
+];
 
 module.exports.checkSendTo = check("sendTo")
   .isIn(userValidation.receiverTypes)
@@ -250,3 +325,53 @@ module.exports.checkReviewContent = check("content")
     max: reviewValidation.content.maxLength,
   })
   .withMessage(errors.review.invalidContent);
+
+module.exports.checkForRealName = (key) => (req, res, next) => {
+  try {
+    // Get the name
+    const name = req.body[key];
+
+    // Create the RegEx pattern for real names
+    const namePattern = /^[a-zA-Z]+(([',. -][a-zA-Z ])?[a-zA-Z]*)*$/;
+
+    // Check if name is real
+    const isRealName = namePattern.test(name);
+    if (!isRealName) {
+      const statusCode = httpStatus.FORBIDDEN;
+      const message = errors.user.unrealName;
+      throw new ApiError(statusCode, message);
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+function checkTextLanguage(key, language, errorMssg) {
+  return (req, res, next) => {
+    try {
+      // Get the text
+      const text = req.body[key];
+
+      // Get all detected language from text
+      const detections = langdetect.detect(text);
+
+      // Check if the required language is detected
+      const isDetected = detections.map((d) => d.lang).includes(language);
+      if (!isDetected) {
+        const statusCode = httpStatus.BAD_REQUEST;
+        const message = errorMssg || errors.system.invalidLanguage;
+        throw new ApiError(statusCode, message);
+      }
+
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+module.exports.checkErrorId = check("errorId")
+  .isMongoId()
+  .withMessage(errors.serverError.invalidId);

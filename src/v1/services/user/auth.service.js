@@ -15,6 +15,25 @@ module.exports.registerWithEmail = async (
   lang
 ) => {
   try {
+    // Find a user with the given email and phone
+    const registeredUser = await User.findOne({
+      email,
+      "phone.full": `${phoneICC}${phoneNSN}`,
+    });
+
+    // Check if there was a user registered with the given
+    // email and phone number
+    if (registeredUser) {
+      // Check if password is correct
+      const isCorrectPassword = await registeredUser.comparePassword(password);
+      if (isCorrectPassword) {
+        return {
+          user: registeredUser,
+          isAlreadyRegistered: true,
+        };
+      }
+    }
+
     // Create user
     const user = new User({
       authType: "email",
@@ -25,6 +44,7 @@ module.exports.registerWithEmail = async (
         icc: phoneICC,
         nsn: phoneNSN,
       },
+      lang,
     });
 
     // Set user's password
@@ -48,7 +68,10 @@ module.exports.registerWithEmail = async (
     // Save user to the DB
     await user.save();
 
-    return user;
+    return {
+      user,
+      isAlreadyRegistered: false,
+    };
   } catch (err) {
     if (err.code === errors.codes.duplicateIndexKey) {
       const statusCode = httpStatus.FORBIDDEN;
@@ -146,7 +169,7 @@ module.exports.loginWithEmail = async (
     });
 
     // Check if user is deleted
-    const isDeleted = user.isDeleted;
+    const isDeleted = user.isDeleted();
 
     if (!user) {
       const statusCode = httpStatus.NOT_FOUND;
@@ -170,18 +193,18 @@ module.exports.loginWithEmail = async (
     }
 
     // Check if user was deleted and restore it
-    if (user.isDeleted) {
+    if (user.isDeleted()) {
       user.restoreAccount();
     }
-
-    // Update user's last login date
-    user.updateLastLogin();
 
     // Update user's device token
     user.updateDeviceToken(deviceToken);
 
     // Update user's favorite language
     user.updateLanguage(lang);
+
+    // Update user's last login date
+    user.updateLastLogin();
 
     // Save user to the DB
     await user.save();
@@ -209,21 +232,21 @@ module.exports.loginWithGoogle = async (googleToken, deviceToken, lang) => {
     }
 
     // Check if user is deleted
-    const isDeleted = user.isDeleted;
+    const isDeleted = user.isDeleted();
 
     // Check if user was deleted and restore it
-    if (user.isDeleted) {
+    if (user.isDeleted()) {
       user.restoreAccount();
     }
-
-    // Update user's last login date
-    user.updateLastLogin();
 
     // Update user's device token
     user.updateDeviceToken(deviceToken);
 
     // Update user's favorite language
     user.updateLanguage(lang);
+
+    // Update user's last login date
+    user.updateLastLogin();
 
     // Save user to the DB
     await user.save();

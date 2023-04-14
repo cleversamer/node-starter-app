@@ -137,6 +137,11 @@ const loginActivitySchema = new Schema(
 // to fetch user's login activity fast
 loginActivitySchema.index({ author: -1 });
 
+loginActivitySchema.pre("save", function (next) {
+  this.date = new Date();
+  next();
+});
+
 const LoginActivity = model("LoginActivity", loginActivitySchema);
 
 module.exports = {
