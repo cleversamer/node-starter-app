@@ -59,12 +59,14 @@ module.exports.checkEmailOrPhone = check("emailOrPhone")
 module.exports.checkEmail = check("email")
   .trim()
   .isEmail()
+  .withMessage(errors.auth.invalidEmail)
+  .bail()
   .isLength({
     min: userValidation.email.minLength,
     max: userValidation.email.maxLength,
   })
-  .withMessage(errors.auth.invalidEmail)
-  .bail();
+  .bail()
+  .withMessage(errors.auth.invalidEmail);
 
 module.exports.checkAuthType = check("authType")
   .trim()

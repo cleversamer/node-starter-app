@@ -30,6 +30,12 @@ router.post(
   usersController.checkCode("email")
 );
 
+router.post(
+  "/email/used",
+  userValidator.validateEmail,
+  usersController.checkIfEmailUsed
+);
+
 router.get(
   "/email/verify/fast",
   userValidator.validateVerifyEmailByLink,
@@ -53,6 +59,12 @@ router.post(
   userValidator.validateCode,
   auth("readOwn", "phoneVerificationCode", true),
   usersController.checkCode("phone")
+);
+
+router.post(
+  "/phone/used",
+  userValidator.validatePhone,
+  usersController.checkIfPhoneUsed
 );
 
 router

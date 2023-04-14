@@ -131,7 +131,7 @@ module.exports.checkCode = (key) => async (req, res, next) => {
       remainingHours,
       remainingMinutes,
       remainingSeconds,
-    } = await usersService.checkCode(key, user, code);
+    } = usersService.checkCode(key, user, code);
 
     // Create the response object
     const response = {
@@ -145,6 +145,49 @@ module.exports.checkCode = (key) => async (req, res, next) => {
     };
 
     // Send response back to the client
+    res.status(httpStatus.OK).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.checkIfEmailUsed = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    // Check if the given email used
+    const isUsed = await usersService.checkIfEmailUsed(email);
+
+    // Create the response object
+    const response = {
+      email,
+      isUsed,
+    };
+
+    // Send the response back to client
+    res.status(httpStatus.OK).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.checkIfPhoneUsed = async (req, res, next) => {
+  try {
+    const { phoneICC, phoneNSN } = req.body;
+
+    // Construct the full phone
+    const fullPhone = `${phoneICC}${phoneNSN}`;
+
+    // Check if the given email used
+    const isUsed = await usersService.checkIfPhoneUsed(fullPhone);
+
+    // Create the response object
+    const response = {
+      phone: fullPhone,
+      isUsed,
+    };
+
+    // Send the response back to client
     res.status(httpStatus.OK).json(response);
   } catch (err) {
     next(err);

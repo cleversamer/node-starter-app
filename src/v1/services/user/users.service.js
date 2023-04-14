@@ -253,6 +253,26 @@ module.exports.checkCode = (key, user, code) => {
   }
 };
 
+module.exports.checkIfEmailUsed = async (email) => {
+  try {
+    // Find user with the given email
+    const user = await User.findOne({ email });
+    return !!user;
+  } catch (err) {
+    throw err;
+  }
+};
+
+module.exports.checkIfPhoneUsed = async (fullPhone) => {
+  try {
+    // Find user with the given email
+    const user = await User.findOne({ "phone.full": fullPhone });
+    return !!user;
+  } catch (err) {
+    throw err;
+  }
+};
+
 module.exports.resendEmailOrPhoneVerificationCode = async (key, user) => {
   try {
     // Ensure that key is correct

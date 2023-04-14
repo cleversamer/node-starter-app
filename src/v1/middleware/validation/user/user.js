@@ -95,13 +95,21 @@ module.exports.validateChangePassword = [
   commonMiddleware.next,
 ];
 
-module.exports.emailValidator = [
+module.exports.validateCode = [
+  commonMiddleware.checkCode,
+  commonMiddleware.next,
+];
+
+module.exports.validateEmail = [
+  commonMiddleware.putQueryParamsInBody,
   commonMiddleware.checkEmail,
   commonMiddleware.next,
 ];
 
-module.exports.validateCode = [
-  commonMiddleware.checkCode,
+module.exports.validatePhone = [
+  commonMiddleware.putQueryParamsInBody,
+  commonMiddleware.checkPhoneICC,
+  commonMiddleware.checkPhoneNSN,
   commonMiddleware.next,
 ];
 
