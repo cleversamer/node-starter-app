@@ -379,6 +379,37 @@ module.exports.switchLanguage = async (req, res, next) => {
   }
 };
 
+module.exports.updateLink = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { linkKey } = req.params;
+    const { link: linkValue } = req.body;
+
+    const updatedUser = await usersService.updateLink(user, linkKey, linkValue);
+
+    const response = _.pick(updatedUser, clientSchema);
+
+    res.status(httpStatus.OK).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.removeLink = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { linkKey } = req.params;
+
+    const updatedUser = await usersService.removeLink(user, linkKey);
+
+    const response = _.pick(updatedUser, clientSchema);
+
+    res.status(httpStatus.OK).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports.seeNotifications = async (req, res, next) => {
   try {
     const user = req.user;

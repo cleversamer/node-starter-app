@@ -18,6 +18,16 @@ module.exports = {
   languages: ["en", "ar"],
   // First value is the default value
   displayModes: ["light", "dark", "dim"],
+  supportedLinks: [
+    "instagram",
+    "twitter",
+    "linkedin",
+    "facebook",
+    "youtube",
+    "website",
+    "other",
+  ],
+  link: { minLength: 15, maxLength: 2048 },
   notificationTitle: { min: 3, max: 128 },
   notificationBody: { min: 3, max: 265 },
 };

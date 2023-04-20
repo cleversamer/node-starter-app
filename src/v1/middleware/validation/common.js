@@ -377,3 +377,14 @@ function checkTextLanguage(key, language, errorMssg) {
 module.exports.checkErrorId = check("errorId")
   .isMongoId()
   .withMessage(errors.serverError.invalidId);
+
+module.exports.checkLinkKey = check("linkKey")
+  .isIn(userValidation.supportedLinks)
+  .withMessage(errors.user.invalidLinkKey);
+
+module.exports.checkLinkValue = check("link")
+  .isLength({
+    min: userValidation.link.minLength,
+    max: userValidation.link.maxLength,
+  })
+  .withMessage(errors.user.invalidLinkValue);

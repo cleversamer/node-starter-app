@@ -33,8 +33,8 @@ const reviewSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      minLength: config.content.minLength,
-      maxLength: config.content.maxLength,
+      minlength: config.content.minLength,
+      maxlength: config.content.maxLength,
     },
     //
     updates: [
@@ -42,8 +42,8 @@ const reviewSchema = new Schema(
         type: String,
         required: true,
         trim: true,
-        minLength: config.content.minLength,
-        maxLength: config.content.maxLength,
+        minlength: config.content.minLength,
+        maxlength: config.content.maxLength,
       },
     ],
     date: {

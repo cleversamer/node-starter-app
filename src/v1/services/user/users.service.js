@@ -507,6 +507,34 @@ module.exports.switchLanguage = async (user) => {
   }
 };
 
+module.exports.updateLink = async (user, linkKey, linkValue) => {
+  try {
+    // Update user's link
+    user.updateLink(linkKey, linkValue);
+
+    // Save user to the DB
+    await user.save();
+
+    return user;
+  } catch (err) {
+    throw err;
+  }
+};
+
+module.exports.removeLink = async (user, linkKey) => {
+  try {
+    // Update user's link
+    user.removeLink(linkKey);
+
+    // Save user to the DB
+    await user.save();
+
+    return user;
+  } catch (err) {
+    throw err;
+  }
+};
+
 module.exports.sendNotification = async (userIds, notification, callback) => {
   try {
     // Validate callback function

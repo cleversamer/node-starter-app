@@ -1,6 +1,7 @@
 const {
   notificationTitle,
   notificationBody,
+  link,
 } = require("../../models/user/user");
 
 module.exports = Object.freeze({
@@ -95,5 +96,13 @@ module.exports = Object.freeze({
   unrealName: {
     en: "We require everyone to use the name they use in everyday life",
     ar: "نطلب من الجميع استخدام الإسم الذي يستخدمونه في الحياة اليوميّة",
+  },
+  invalidLinkKey: {
+    en: "Link type is not supported",
+    ar: "نوع الرابط غير مدعوم",
+  },
+  invalidLinkValue: {
+    en: `Link must be ${link.minLength.toLocaleString()}-${link.maxLength.toLocaleString()} characters`,
+    ar: `الرابط يجب أن يكون بين ${link.minLength.toLocaleString()}-${link.maxLength.toLocaleString()} حرفًا`,
   },
 });

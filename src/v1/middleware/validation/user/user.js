@@ -48,6 +48,19 @@ module.exports.validateUpdateProfile = [
   commonMiddleware.next,
 ];
 
+module.exports.validateUpdateLink = [
+  commonMiddleware.putQueryParamsInBody,
+  commonMiddleware.checkLinkKey,
+  commonMiddleware.checkLinkValue,
+  commonMiddleware.next,
+];
+
+module.exports.validateRemoveLink = [
+  commonMiddleware.putQueryParamsInBody,
+  commonMiddleware.checkLinkKey,
+  commonMiddleware.next,
+];
+
 module.exports.validateConfirmAccountDeletion = [
   commonMiddleware.putQueryParamsInBody,
   commonMiddleware.checkCode,

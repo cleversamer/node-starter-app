@@ -78,8 +78,8 @@ const advertisementSchema = new Schema(
       rejection: {
         type: String,
         trim: true,
-        minLength: config.reasonForRejection.minLength,
-        maxLength: config.reasonForRejection.maxLength,
+        minlength: config.reasonForRejection.minLength,
+        maxlength: config.reasonForRejection.maxLength,
       },
     },
     // The beginning date

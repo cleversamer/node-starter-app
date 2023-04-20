@@ -104,6 +104,20 @@ router.patch(
   usersController.switchLanguage
 );
 
+router.patch(
+  "/profile/link/:linkKey/update",
+  userValidator.validateUpdateLink,
+  auth("updateOwn", "user"),
+  usersController.updateLink
+);
+
+router.delete(
+  "/profile/link/:linkKey/remove",
+  userValidator.validateRemoveLink,
+  auth("updateOwn", "user"),
+  usersController.removeLink
+);
+
 router.get(
   "/notifications/see",
   auth("readOwn", "notification"),

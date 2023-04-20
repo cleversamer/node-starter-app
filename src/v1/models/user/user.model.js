@@ -13,6 +13,7 @@ const clientSchema = [
   "phone",
   "role",
   "verified",
+  "links",
   "display",
   "notifications",
   "lastLogin",
@@ -65,8 +66,8 @@ const userSchema = new Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      minLength: config.email.minLength,
-      maxLength: config.email.maxLength,
+      minlength: config.email.minLength,
+      maxlength: config.email.maxLength,
     },
     // The phone of the user
     phone: {
@@ -93,8 +94,8 @@ const userSchema = new Schema(
         type: String,
         required: true,
         trim: true,
-        minLength: countriesData.minNSN,
-        maxLength: countriesData.maxNSN,
+        minlength: countriesData.minNSN,
+        maxlength: countriesData.maxNSN,
       },
     },
     // The hashed password of the user
@@ -108,6 +109,51 @@ const userSchema = new Schema(
       type: String,
       enum: config.roles,
       default: config.roles[0],
+    },
+    // User's links (Like social media, website, ...etc)
+    links: {
+      instagram: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
+      twitter: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
+      linkedin: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
+      facebook: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
+      youtube: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
+      website: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
+      other: {
+        type: String,
+        trim: true,
+        maxlength: config.link.maxLength,
+        default: "",
+      },
     },
     // User's display settings
     display: {
@@ -147,8 +193,8 @@ const userSchema = new Schema(
     // The device token of the user (Used for sending notifications to it)
     deviceToken: {
       type: String,
-      minLength: config.deviceToken.minLength,
-      maxLength: config.deviceToken.maxLength,
+      minlength: config.deviceToken.minLength,
+      maxlength: config.deviceToken.maxLength,
       default: "",
     },
     // The last login date of the user
@@ -405,6 +451,15 @@ userSchema.methods.hasReceivedNotification = function (notification) {
   // this notification yet, or they have received it
   // and read it.
   return index === -1;
+};
+
+//////////////////////// LINKS ////////////////////////
+userSchema.methods.updateLink = function (key, value) {
+  this.links[key] = value;
+};
+
+userSchema.methods.removeLink = function (key) {
+  this.links[key] = "";
 };
 
 //////////////////////// DEVICE TOKEN ////////////////////////
