@@ -26,9 +26,32 @@ module.exports.validateRegisterWithGoogle = [
   commonMiddleware.next,
 ];
 
-module.exports.validateLoginWithEmail = [
+module.exports.validateLoginWithEmailOrPhone = [
   commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
   commonMiddleware.checkEmailOrPhone,
+  commonMiddleware.checkPassword,
+  commonMiddleware.conditionalCheck(
+    "deviceToken",
+    commonMiddleware.checkDeviceToken
+  ),
+  commonMiddleware.next,
+];
+
+module.exports.validateLoginWithEmail = [
+  commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
+  commonMiddleware.checkEmail,
+  commonMiddleware.checkPassword,
+  commonMiddleware.conditionalCheck(
+    "deviceToken",
+    commonMiddleware.checkDeviceToken
+  ),
+  commonMiddleware.next,
+];
+
+module.exports.validateLoginWithPhone = [
+  commonMiddleware.conditionalCheck("lang", commonMiddleware.checkLanguage),
+  commonMiddleware.checkPhoneICC,
+  commonMiddleware.checkPhoneNSN,
   commonMiddleware.checkPassword,
   commonMiddleware.conditionalCheck(
     "deviceToken",

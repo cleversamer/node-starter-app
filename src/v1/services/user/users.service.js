@@ -113,14 +113,14 @@ module.exports.findUserByEmailOrPhone = async (
   withError = false
 ) => {
   try {
+    // Filter `emailOrPhone` param
+    const emailOrPhoneIsEmail = emailOrPhone.includes("@");
+    const queryCriteria = emailOrPhoneIsEmail
+      ? { email: { $eq: emailOrPhone } }
+      : { "phone.full": { $eq: emailOrPhone } };
+
     // Find user by email or phone
-    const user = await User.findOne({
-      $or: [
-        { email: { $eq: emailOrPhone } },
-        { "phone.full": { $eq: emailOrPhone } },
-      ],
-      deleted: false,
-    });
+    const user = await User.findOne(queryCriteria);
 
     // Throwing error if no user found and `throwError = true`
     if (withError && !user) {

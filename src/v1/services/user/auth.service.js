@@ -31,6 +31,10 @@ module.exports.registerWithEmail = async (
           user: registeredUser,
           isAlreadyRegistered: true,
         };
+      } else {
+        const statusCode = httpStatus.FORBIDDEN;
+        const message = errors.auth.emailOrPhoneUsed;
+        throw new ApiError(statusCode, message);
       }
     }
 
@@ -153,20 +157,87 @@ module.exports.registerWithGoogle = async (
   }
 };
 
-module.exports.loginWithEmail = async (
+module.exports.loginWithEmailOrPhone = async (
   emailOrPhone,
   password,
   deviceToken,
   lang
 ) => {
   try {
-    // Check if user exist
-    const user = await User.findOne({
-      $or: [
-        { email: { $eq: emailOrPhone } },
-        { "phone.full": { $eq: emailOrPhone } },
-      ],
-    });
+    // Filter `emailOrPhone` param
+    const isEmail = emailOrPhone.includes("@");
+    return isEmail
+      ? await this.loginWithEmail(emailOrPhone, password, deviceToken, lang)
+      : await this.loginWithPhone(emailOrPhone, password, deviceToken, lang);
+  } catch (err) {
+    throw err;
+  }
+};
+
+module.exports.loginWithEmail = async (email, password, deviceToken, lang) => {
+  try {
+    // Check if user exists
+    const user = await User.findOne({ email });
+
+    // Check if user is deleted
+    const isDeleted = user.isDeleted();
+
+    if (!user) {
+      const statusCode = httpStatus.NOT_FOUND;
+      const message = errors.auth.incorrectCredentials;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Check if user has a password
+    // HINT: this happens when a user registers with Google
+    if (!user.hasPassword()) {
+      const statusCode = httpStatus.UNAUTHORIZED;
+      const message = errors.auth.hasNoPassword;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Decoding user's password and comparing it with the password argument
+    if (!(await user.comparePassword(password))) {
+      const statusCode = httpStatus.UNAUTHORIZED;
+      const message = errors.auth.incorrectCredentials;
+      throw new ApiError(statusCode, message);
+    }
+
+    // Check if user was deleted and restore it
+    if (user.isDeleted()) {
+      user.restoreAccount();
+    }
+
+    // Update user's device token
+    user.updateDeviceToken(deviceToken);
+
+    // Update user's favorite language
+    user.updateLanguage(lang);
+
+    // Update user's last login date
+    user.updateLastLogin();
+
+    // Save user to the DB
+    await user.save();
+
+    return {
+      user,
+      isDeleted,
+    };
+  } catch (err) {
+    throw err;
+  }
+};
+
+module.exports.loginWithPhone = async (
+  fullPhone,
+  password,
+  deviceToken,
+  lang
+) => {
+  try {
+    // Check if user exists
+    const user = await User.findOne({ "phone.full": fullPhone });
 
     // Check if user is deleted
     const isDeleted = user.isDeleted();
